@@ -1,0 +1,7 @@
+node_modules/
+data/*.json
+postgres-data/
+postgres-data-18/
+*.log
+.env
+npm-debug.log*
