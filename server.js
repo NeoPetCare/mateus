@@ -76,7 +76,7 @@ function parseCookies(req) {
     const value = part.slice(separator + 1).trim();
     try {
       cookies[name] = decodeURIComponent(value);
-    } catch (error) {
+    } catch {
       cookies[name] = '';
     }
   }
@@ -91,8 +91,7 @@ async function currentUser(req) {
     sessions.delete(token);
     return null;
   }
-  const userId = session.userId;
-  const result = await pool.query('SELECT id, name, email FROM users WHERE id = $1', [userId]);
+  const result = await pool.query('SELECT id, name, email FROM users WHERE id = $1', [session.userId]);
   return result.rows[0] || null;
 }
 
@@ -128,18 +127,29 @@ function rateLimit(req) {
 
 async function handleApi(req, res, url) {
   if (!rateLimit(req)) return json(res, 429, { error: 'Muitas requisições. Tente novamente em instantes.' });
+
   if (req.method !== 'GET') {
-    if (!String(req.headers['content-type'] || '').startsWith('application/json')) return json(res, 415, { error: 'A requisição deve usar application/json.' });
+    if (!String(req.headers['content-type'] || '').startsWith('application/json'))
+      return json(res, 415, { error: 'A requisição deve usar application/json.' });
+
     const requestOrigin = req.headers.origin;
     const forwardedProtocol = req.headers['x-forwarded-proto'];
-    const requestProtocol = isProduction && forwardedProtocol ? String(forwardedProtocol).split(',')[0].trim() : 'http';
+    const requestProtocol = isProduction && forwardedProtocol
+      ? String(forwardedProtocol).split(',')[0].trim()
+      : 'http';
+
     const expectedOrigin = `${requestProtocol}://${req.headers.host || 'localhost'}`;
-    if (requestOrigin && requestOrigin !== expectedOrigin) return json(res, 403, { error: 'Origem não autorizada.' });
+    if (requestOrigin && requestOrigin !== expectedOrigin)
+      return json(res, 403, { error: 'Origem não autorizada.' });
   }
+
   const user = await currentUser(req);
 
-  if (req.method === 'GET' && url.pathname === '/api/health') return json(res, 200, { ok: true });
-  if (req.method === 'GET' && url.pathname === '/api/me') return json(res, 200, { user: publicUser(user) });
+  if (req.method === 'GET' && url.pathname === '/api/health')
+    return json(res, 200, { ok: true });
+
+  if (req.method === 'GET' && url.pathname === '/api/me')
+    return json(res, 200, { user: publicUser(user) });
 
   let body;
   try {
@@ -148,173 +158,186 @@ async function handleApi(req, res, url) {
     return json(res, error.message === 'PAYLOAD_TOO_LARGE' ? 413 : 400, { error: 'Corpo da requisição inválido.' });
   }
 
+  // SIGNUP
   if (req.method === 'POST' && url.pathname === '/api/auth/signup') {
     const name = cleanText(body.name, 100);
     const email = cleanText(body.email, 254).toLowerCase();
     const password = typeof body.password === 'string' ? body.password : '';
-    if (name.length < 2 || !validEmail(email) || password.length < 8 || password.length > 128) {
+
+    if (name.length < 2 || !validEmail(email) || password.length < 8 || password.length > 128)
       return json(res, 400, { error: 'Informe nome, e-mail válido e senha de 8 a 128 caracteres.' });
-    }
+
     const existingUser = await pool.query('SELECT 1 FROM users WHERE email = $1', [email]);
-    if (existingUser.rowCount) return json(res, 409, { error: 'Este e-mail já está cadastrado.' });
-    const newUser = { id: createId(), name, email, passwordHash: await createPasswordHash(password) };
-    await pool.query('INSERT INTO users (id, name, email, password_hash) VALUES ($1, $2, $3, $4)', [newUser.id, newUser.name, newUser.email, newUser.passwordHash]);
+    if (existingUser.rowCount)
+      return json(res, 409, { error: 'Este e-mail já está cadastrado.' });
+
+    const newUser = {
+      id: createId(),
+      name,
+      email,
+      passwordHash: await createPasswordHash(password)
+    };
+
+    await pool.query(
+      'INSERT INTO users (id, name, email, password_hash) VALUES ($1, $2, $3, $4)',
+      [newUser.id, newUser.name, newUser.email, newUser.passwordHash]
+    );
+
     const token = randomBytes(32).toString('hex');
     sessions.set(token, { userId: newUser.id, expiresAt: Date.now() + 86_400_000 });
-    return json(res, 201, { user: publicUser(newUser) }, { 'Set-Cookie': `sid=${encodeURIComponent(token)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=86400${isProduction ? '; Secure' : ''}` });
+
+    return json(
+      res,
+      201,
+      { user: publicUser(newUser) },
+      { 'Set-Cookie': `sid=${encodeURIComponent(token)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=86400${isProduction ? '; Secure' : ''}` }
+    );
   }
 
+  // LOGIN
   if (req.method === 'POST' && url.pathname === '/api/auth/login') {
     const email = cleanText(body.email, 254).toLowerCase();
     const password = typeof body.password === 'string' ? body.password : '';
-    const result = await pool.query('SELECT id, name, email, password_hash FROM users WHERE email = $1', [email]);
+
+    const result = await pool.query(
+      'SELECT id, name, email, password_hash FROM users WHERE email = $1',
+      [email]
+    );
+
     const account = result.rows[0];
-    if (!account || !(await passwordMatches(password, account.password_hash))) return json(res, 401, { error: 'E-mail ou senha inválidos.' });
+    if (!account || !(await passwordMatches(password, account.password_hash)))
+      return json(res, 401, { error: 'E-mail ou senha inválidos.' });
+
     const token = randomBytes(32).toString('hex');
     sessions.set(token, { userId: account.id, expiresAt: Date.now() + 86_400_000 });
-    return json(res, 200, { user: publicUser(account) }, { 'Set-Cookie': `sid=${encodeURIComponent(token)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=86400${isProduction ? '; Secure' : ''}` });
+
+    return json(
+      res,
+      200,
+      { user: publicUser(account) },
+      { 'Set-Cookie': `sid=${encodeURIComponent(token)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=86400${isProduction ? '; Secure' : ''}` }
+    );
   }
 
+  // LOGOUT
   if (req.method === 'POST' && url.pathname === '/api/auth/logout') {
     const token = parseCookies(req).sid;
     if (token) sessions.delete(token);
     return json(res, 200, { ok: true }, { 'Set-Cookie': 'sid=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0' });
   }
 
+  // PARTNERS (POST)
   if (req.method === 'POST' && url.pathname === '/api/partners') {
-  const partner = {
-    name: cleanText(body.name, 100),
-    service: cleanText(body.service, 100),
-    contact: cleanText(body.contact, 150)
-  };
+    const partner = {
+      name: cleanText(body.name, 150),
+      service: cleanText(body.service, 150),
+      contact: cleanText(body.contact, 150)
+    };
 
-  if (Object.values(partner).some(v => !v)) {
-    return json(res, 400, { error: 'Preencha todos os campos.' });
+    if (Object.values(partner).some(v => !v))
+      return json(res, 400, { error: 'Preencha todos os campos da parceria.' });
+
+    await pool.query(
+      'INSERT INTO partners (id, name, service, contact) VALUES ($1, $2, $3, $4)',
+      [
+        createId(),
+        partner.name,
+        partner.service,
+        partner.contact
+      ]
+    );
+
+    return json(res, 201, { ok: true });
   }
 
-  await pool.query(
-    'INSERT INTO partners (id, name, service, contact) VALUES ($1, $2, $3, $4)',
-    [
-      createId(),
-      partner.name,
-      partner.service,
-      partner.contact
-    ]
-  );
+  // ADOPTIONS
+  if (req.method === 'POST' && url.pathname === '/api/adoptions') {
+    const adoption = {
+      pet_name: cleanText(body.pet_name, 100),
+      pet_type: cleanText(body.pet_type, 50),
+      adopter_name: cleanText(body.adopter_name, 100),
+      adopter_email: cleanText(body.adopter_email, 254).toLowerCase(),
+      message: cleanText(body.message, 1000)
+    };
 
-  return json(res, 201, { ok: true });
-}
+    if (Object.values(adoption).some(v => !v))
+      return json(res, 400, { error: 'Preencha todos os campos.' });
 
-if (req.method === 'POST' && url.pathname === '/api/adoptions') {
-  const adoption = {
-    pet_name: cleanText(body.pet_name, 100),
-    pet_type: cleanText(body.pet_type, 50),
-    adopter_name: cleanText(body.adopter_name, 100),
-    adopter_email: cleanText(body.adopter_email, 254).toLowerCase(),
-    message: cleanText(body.message, 1000)
-  };
+    await pool.query(
+      'INSERT INTO adoptions (id, pet_name, pet_type, adopter_name, adopter_email, message) VALUES ($1, $2, $3, $4, $5, $6)',
+      [
+        createId(),
+        adoption.pet_name,
+        adoption.pet_type,
+        adoption.adopter_name,
+        adoption.adopter_email,
+        adoption.message
+      ]
+    );
 
-  if (Object.values(adoption).some(v => !v)) {
-    return json(res, 400, { error: 'Preencha todos os campos.' });
+    return json(res, 201, { ok: true });
   }
 
-  await pool.query(
-    'INSERT INTO adoptions (id, pet_name, pet_type, adopter_name, adopter_email, message) VALUES ($1, $2, $3, $4, $5, $6)',
-    [
-      createId(),
-      adoption.pet_name,
-      adoption.pet_type,
-      adoption.adopter_name,
-      adoption.adopter_email,
-      adoption.message
-    ]
-  );
-
-  return json(res, 201, { ok: true });
-}
-
+  // REPORTS (GET)
   if (req.method === 'GET' && url.pathname === '/api/reports') {
-  const result = await pool.query(`
-    SELECT 
-      id,
-      report_type,
-      pet_name,
-      description,
-      contact,
-      created_at AS "createdAt"
-    FROM reports
-    ORDER BY created_at DESC
-  `);
+    const result = await pool.query(`
+      SELECT 
+        id,
+        report_type,
+        pet_name,
+        description,
+        contact,
+        created_at AS "createdAt"
+      FROM reports
+      ORDER BY created_at DESC
+    `);
 
-  return json(res, 200, { reports: result.rows });
-}
-
- if (req.method === 'POST' && url.pathname === '/api/reports') {
-  const report = {
-    report_type: cleanText(body.report_type, 20),     // perdido / encontrado
-    pet_name: cleanText(body.pet_name, 100),
-    description: cleanText(body.description, 1000),
-    contact: cleanText(body.contact, 150)
-  };
-
-  if (Object.values(report).some(v => !v)) {
-    return json(res, 400, { error: 'Preencha todos os campos da ocorrência.' });
+    return json(res, 200, { reports: result.rows });
   }
 
-  const result = await pool.query(
-    'INSERT INTO reports (id, report_type, pet_name, description, contact) VALUES ($1, $2, $3, $4, $5) RETURNING id, report_type, pet_name, description, contact, created_at AS "createdAt"',
-    [
-      createId(),
-      report.report_type,
-      report.pet_name,
-      report.description,
-      report.contact
-    ]
-  );
+  // REPORTS (POST)
+  if (req.method === 'POST' && url.pathname === '/api/reports') {
+    const report = {
+      report_type: cleanText(body.report_type, 20),
+      pet_name: cleanText(body.pet_name, 100),
+      description: cleanText(body.description, 1000),
+      contact: cleanText(body.contact, 150)
+    };
 
-  return json(res, 201, { report: result.rows[0] });
-}
-// GET /api/partners — CORRIGIDO
-if (req.method === 'GET' && url.pathname === '/api/partners') {
-  const result = await pool.query(`
-    SELECT 
-      id,
-      name,
-      service,
-      contact,
-      created_at AS "createdAt"
-    FROM partners
-    ORDER BY created_at DESC
-  `);
+    if (Object.values(report).some(v => !v))
+      return json(res, 400, { error: 'Preencha todos os campos da ocorrência.' });
 
-  return json(res, 200, { partners: result.rows });
-}
+    const result = await pool.query(
+      'INSERT INTO reports (id, report_type, pet_name, description, contact) VALUES ($1, $2, $3, $4, $5) RETURNING id, report_type, pet_name, description, contact, created_at AS "createdAt"',
+      [
+        createId(),
+        report.report_type,
+        report.pet_name,
+        report.description,
+        report.contact
+      ]
+    );
 
-
-// POST /api/partners — CORRIGIDO
-if (req.method === 'POST' && url.pathname === '/api/partners') {
-  const partner = {
-    name: cleanText(body.name, 150),
-    service: cleanText(body.service, 150),
-    contact: cleanText(body.contact, 150)
-  };
-
-  if (Object.values(partner).some(v => !v)) {
-    return json(res, 400, { error: 'Preencha todos os campos da parceria.' });
+    return json(res, 201, { report: result.rows[0] });
   }
 
-  await pool.query(
-    'INSERT INTO partners (id, name, service, contact) VALUES ($1, $2, $3, $4)',
-    [
-      createId(),
-      partner.name,
-      partner.service,
-      partner.contact
-    ]
-  );
+  // PARTNERS (GET)
+  if (req.method === 'GET' && url.pathname === '/api/partners') {
+    const result = await pool.query(`
+      SELECT 
+        id,
+        name,
+        service,
+        contact,
+        created_at AS "createdAt"
+      FROM partners
+      ORDER BY created_at DESC
+    `);
 
-  return json(res, 201, { ok: true });
-}
+    return json(res, 200, { partners: result.rows });
+  }
+
+} // <-- FECHA handleApi (CORREÇÃO)
 
 async function serveStatic(req, res, url) {
   const requestedPath = url.pathname === '/' ? '/index.html' : url.pathname;
@@ -323,7 +346,6 @@ async function serveStatic(req, res, url) {
   const rootPrefix = `${rootDir}${path.sep}`;
   const dataPrefix = `${dataDir}${path.sep}`;
 
-  // Bloqueia acesso fora da pasta pública ou dentro da pasta de dados
   if (
     (filePath !== rootDir && !filePath.startsWith(rootPrefix)) ||
     filePath === dataDir ||
@@ -349,10 +371,11 @@ async function serveStatic(req, res, url) {
     });
 
     res.end(content);
-  } catch (error) {
+  } catch {
     json(res, 404, { error: 'Arquivo não encontrado.' });
   }
 }
+
 const server = createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
 
@@ -364,12 +387,13 @@ const server = createServer(async (req, res) => {
 
     await serveStatic(req, res, url);
 
-  } catch (error) {
+  } catch {
     json(res, 500, { error: 'Erro interno do servidor.' });
   }
 });
 
-const isDirectExecution = process.argv[1] &&
+const isDirectExecution =
+  process.argv[1] &&
   fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
 
 if (isDirectExecution) {
