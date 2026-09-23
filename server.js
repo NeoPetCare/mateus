@@ -369,8 +369,6 @@ const server = createServer(async (req, res) => {
   }
 });
 
-export { cleanText, validEmail, createPasswordHash, passwordMatches };
-
 const isDirectExecution = process.argv[1] &&
   fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
 
