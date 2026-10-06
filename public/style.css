@@ -59,8 +59,8 @@
 .stat-icon{font-size:34px}
 .stat strong{font-size:24px}
 .stat small{font-size:12px;line-height:1.35}
-.section{max-width:1366px;margin:54px auto;padding:0 max(7vw,35px);background:#062f4a;border-radius:14px;color:#fff}
-.adoption-section{padding:20px}
+.section{max-width:1366px;margin:44px auto;padding:0 max(7vw,35px);background:#062f4a;border-radius:14px;color:#fff}
+.adoption-section{padding:10px}
 .how-section,.events-section,.impact,.lost-found,.partners,.testimonials,.wikipet,.about-section{background:#062f4a;border-radius:14px;color:#fff}
 .section-heading{display:flex;align-items:end;justify-content:space-between;margin-bottom:18px}
 .section h2,.how-section h2,.impact h2{font-family:Manrope;color:#fff;font-size:clamp(1.75rem,2vw,2.2rem);margin:0 0 3px;line-height:1.2;letter-spacing:-.04em}
@@ -114,7 +114,7 @@
 .open-donation.card-button:hover{background:linear-gradient(135deg,#ff7a56,#ff5e39);box-shadow:0 8px 24px rgba(255,118,85,.32)}
 .open-donation.card-button:hover::after{opacity:1}
 .mini-button{padding:8px 12px;font-size:9px}
-.how-section{background:#062f4a;max-width:1366px;margin:62px auto;padding:33px max(7vw,35px);border-radius:12px;color:#fff}
+.how-section{background:#062f4a;max-width:1366px;margin:52px auto;padding:23px max(7vw,35px);border-radius:12px;color:#fff}
 
 /* --------seção passos-------- */
 
@@ -129,7 +129,7 @@
 /* --------seção campanhas-------- */
 
 .campaign-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-.campaigns-section{padding:8px;margin-top:5px}
+.campaigns-section{padding:18px;margin-top:5px}
 .campaign{display:grid;grid-template-columns:85px 1fr;gap:12px;background:#f5fbfc;padding:9px;border-radius:7px}
 .campaign-image{aspect-ratio:1 / 1;transition:transform .3s ease,filter .3s ease}.campaign:hover .campaign-image{filter:saturate(1.08);transform:scale(1.03)}
 .campaign-image{height:84px;border-radius:5px;background-size:cover;background-position:center}
@@ -156,7 +156,7 @@
 
 /* --------seção eventos-------- */
 
-.events-section{background:#062f4a;border-radius:14px;padding-top:25px;padding-bottom:25px;color:#fff}
+.events-section{background:#062f4a;border-radius:14px;padding-top:15px;padding-bottom:15px;color:#fff}
 .event-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
 .event-card{display:flex;gap:15px;align-items:flex-start;background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 8px 22px rgba(13,67,95,.06)}
 .event-date{flex:0 0 48px;height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--mint);border-radius:9px;color:var(--green-dark);line-height:1}
@@ -167,7 +167,7 @@
 
 /* --------seção impacto-------- */
 
-.impact{max-width:1366px;margin:0 auto 62px;background:#062f4a;border-radius:12px;padding:25px max(7vw,35px);display:grid;grid-template-columns:1.6fr repeat(3,1fr) 1.1fr;gap:24px;align-items:center;color:#fff}
+.impact{max-width:1366px;margin:0 auto 52px;background:#062f4a;border-radius:12px;padding:15px max(7vw,35px);display:grid;grid-template-columns:1.6fr repeat(3,1fr) 1.1fr;gap:24px;align-items:center;color:#fff}
 .impact h2{font-size:17px}
 .impact p:not(.eyebrow){font-size:10px;color:var(--muted);margin:4px 0 0;line-height:1.4}
 .impact-number{border-left:1px solid #cfe9dc;padding-left:14px}
@@ -312,7 +312,7 @@ body.contrast-mode .site-header,.contrast-mode .site-header,.contrast-mode .stat
 .step{gap:8px}
 .step h3{font-size:12px}
 .step p{font-size:9px}}
-.lost-found{background:#062f4a;border-radius:12px;padding:49px 45px;margin:62px auto;max-width:1366px;color:#fff}
+.lost-found{background:#062f4a;border-radius:12px;padding:39px 35px;margin:52px auto;max-width:1366px;color:#fff}
 .lost-found .section-heading{margin-bottom:26px}
 .lost-found-toolbar{display:flex;justify-content:space-between;align-items:center;gap:18px;margin-bottom:24px}
 .search-box{display:flex;align-items:center;gap:9px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:0 13px;max-width:380px;flex:1}
@@ -391,7 +391,7 @@ body.contrast-mode .site-header,.contrast-mode .site-header,.contrast-mode .stat
   .full-button{padding:10px 12px;font-size:10px}
   .modal-box small{font-size:7px;margin-top:8px}
 }
-.partners{background:#062f4a;border-radius:18px;padding:29px 25px;color:#fff;margin:62px auto;max-width:1366px;box-shadow:0 24px 60px rgba(7,31,49,.22);border:1px solid rgba(164,210,224,.12)}
+.partners{background:#062f4a;border-radius:18px;padding:19px 15px;color:#fff;margin:52px auto;max-width:1366px;box-shadow:0 24px 60px rgba(7,31,49,.22);border:1px solid rgba(164,210,224,.12)}
 .partners h2{color:#fff}
 .partners .section-heading>div>p:not(.eyebrow){color:#c8dce3}
 .whatsapp-inline{background:linear-gradient(135deg,#1ad86d,#0fbf62);color:#fff;padding:11px 15px;border-radius:20px;font-size:10px;font-weight:800;white-space:nowrap;box-shadow:0 10px 18px rgba(31,191,98,.3)}
@@ -449,7 +449,7 @@ body.contrast-mode .site-header,.contrast-mode .site-header,.contrast-mode .stat
 .adoption-modal-box label{font-size:10px}
 .adoption-modal-box input,.adoption-modal-box textarea{font-size:11px;padding:8px}
 .adoption-modal-box .form-row{gap:8px}
-.testimonials{background:#062f4a;border-radius:12px;padding:29px 25px;margin:62px auto;max-width:1366px;color:#fff}
+.testimonials{background:#062f4a;border-radius:12px;padding:19px 15px;margin:52px auto;max-width:1366px;color:#fff}
 .testimonials .section-heading{align-items:center}
 .testimonials h2,.testimonials .section-heading p,.testimonial>p,.testimonial-person strong,.testimonial-person small,.testimonial-dot{color:#fff}
 .testimonial-controls{display:flex;gap:7px}
